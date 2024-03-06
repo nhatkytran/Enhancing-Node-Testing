@@ -1,11 +1,17 @@
 const express = require("express");
 const morgan = require("morgan");
-
-const redis = require("./redis");
+const path = require("path");
+const dotenv = require("dotenv");
 
 const app = express();
 
-app.use(morgan("dev"));
+dotenv.config({ path: path.join(__dirname, ".env") });
+
+const redis = require("./redis");
+
+const { NODE_ENV } = process.env;
+
+if (NODE_ENV === "development") app.use(morgan("dev"));
 
 app.get("/slow", function (req, res) {
   const start = Date.now();

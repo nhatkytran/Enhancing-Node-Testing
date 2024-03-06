@@ -9,7 +9,7 @@
         "NODE_ENV": "production"
       },
       "node_args": ["--inspect"],
-      "max_memory_restart": "100M",
+      "max_memory_restart": "25MB",
       "autorestart": true,
       "instances": "max"
     }

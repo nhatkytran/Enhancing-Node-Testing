@@ -1,13 +1,17 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const morgan = require("morgan");
 const path = require("path");
 const dotenv = require("dotenv");
+
+const Book = require("./bookModel");
 
 const app = express();
 
 dotenv.config({ path: path.join(__dirname, ".env") });
 
 const redis = require("./redis");
+require("./cache");
 
 const { NODE_ENV } = process.env;
 
@@ -24,42 +28,44 @@ app.get("/", function (req, res) {
   res.send("Hello World");
 });
 
-const bookStore = {
-  user1111: [
+app.get("/createBook", async (req, res, next) => {
+  await Book.create([
     {
       title: "Band of Brothers",
       price: 99,
     },
-  ],
-  user2222: [
     {
       title: "Master of The Air",
       price: 129,
     },
-  ],
-};
+  ]);
 
-app.get("/books/:userID", async (req, res, next) => {
-  const { userID } = req.params;
-  const booksKey = `user${userID}`;
-  let isCached = false;
-  let books = [];
-
-  const cachedBooks = await redis.get(booksKey);
-
-  if (cachedBooks) {
-    books = JSON.parse(cachedBooks);
-    isCached = true;
-  } else {
-    books = bookStore[booksKey];
-    await redis.set(booksKey, JSON.stringify(books), "EX", 5);
-  }
-
-  res.status(200).json({
-    status: "success",
-    isCached,
-    books,
-  });
+  res.status(200).json({ status: "success" });
 });
 
-app.listen(3000);
+app.get("/oneBook/:bookID/:userID", async (req, res, next) => {
+  const { bookID, userID } = req.params;
+  const book = await Book.findById(bookID).cache({ key: userID });
+
+  res.status(200).json({ status: "success", book });
+});
+
+app.get("/oneBook2/:bookID", async (req, res, next) => {
+  const { bookID } = req.params;
+  const book = await Book.findById(bookID);
+
+  res.status(200).json({ status: "success", book });
+});
+
+mongoose.set("strictQuery", true);
+mongoose
+  .connect(
+    "mongodb+srv://nhatkytran:Icutes3M@cluster0.wttvcu4.mongodb.net/redis?retryWrites=true&w=majority&appName=Cluster0"
+  )
+  .then(() => {
+    console.log("Database connection - Successful");
+
+    app.listen(3000, "127.0.0.1", () =>
+      console.log(`App running on port ${3000}...`)
+    );
+  });
